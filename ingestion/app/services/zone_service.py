@@ -2,23 +2,25 @@ from typing import Optional, List
 from app.schemas.schema import ZoneItem
 
 
-# Por ahora usamos datos de prueba (mock)
-# Cuando tus compañeros conecten la BD, esto cambia aquí
-# sin tocar el endpoint
+# Datos de prueba — simulan lo que vendría de la BD
+# Cada zona pertenece a un dataset con un estado
 _MOCK_ZONES = [
-    {"zone_code": "BOG-001", "zone_name": "chapinero"},
-    {"zone_code": "BOG-002", "zone_name": "suba"},
-    {"zone_code": "BOG-003", "zone_name": "usaquen"},
-    {"zone_code": "BOG-004", "zone_name": "kennedy"},
-    {"zone_code": "BOG-005", "zone_name": "engativa"},
-    {"zone_code": "BOG-006", "zone_name": "bosa"},
+    {"zone_code": "BOG-001", "zone_name": "chapinero",  "dataset_id": "ds-001", "dataset_status": "VALID"},
+    {"zone_code": "BOG-002", "zone_name": "suba",        "dataset_id": "ds-001", "dataset_status": "VALID"},
+    {"zone_code": "BOG-003", "zone_name": "usaquen",     "dataset_id": "ds-001", "dataset_status": "VALID"},
+    {"zone_code": "BOG-004", "zone_name": "kennedy",     "dataset_id": "ds-002", "dataset_status": "INVALID"},   # ← no debe aparecer
+    {"zone_code": "BOG-005", "zone_name": "engativa",    "dataset_id": "ds-003", "dataset_status": "UPLOADED"},  # ← no debe aparecer
+    {"zone_code": "BOG-006", "zone_name": "bosa",        "dataset_id": "ds-001", "dataset_status": "VALID"},
 ]
+
+# Estados que se consideran "listos para consultar"
+VALID_STATUSES = {"VALID", "TRANSFORMED"}
 
 
 class ZoneService:
     """
-    Contiene toda la lógica relacionada con zonas.
-    Principio SRP: esta clase solo hace cosas de zonas.
+    Lógica de negocio para consulta de zonas.
+    Principio SRP: solo maneja lógica de zonas.
     """
 
     def get_zones(
@@ -28,40 +30,52 @@ class ZoneService:
         offset: int,
     ) -> dict:
         """
-        Retorna zonas disponibles con paginación.
-        dataset_id: si se envía, filtraría por ese dataset (simulado por ahora)
-        limit: cuántas zonas devolver máximo
-        offset: desde cuál zona empezar
+        Retorna zonas de datasets válidos, con paginación.
         """
-        # Obtener todas las zonas disponibles
-        all_zones = self._fetch_zones(dataset_id)
+        # Paso 1: obtener zonas filtradas por estado válido
+        valid_zones = self._fetch_valid_zones(dataset_id)
 
-        # Calcular total antes de paginar
-        total = len(all_zones)
+        # Paso 2: calcular total antes de paginar
+        total = len(valid_zones)
 
-        # Aplicar paginación: cortar la lista
-        # Ejemplo: offset=0, limit=3 → zonas 0,1,2
-        # Ejemplo: offset=3, limit=3 → zonas 3,4,5
-        paginated = all_zones[offset : offset + limit]
+        # Paso 3: aplicar paginación
+        paginated = valid_zones[offset: offset + limit]
 
-        # Convertir a objetos ZoneItem
-        zone_items = [ZoneItem(**z) for z in paginated]
+        # Paso 4: calcular si hay más páginas disponibles
+        # Ejemplo: total=6, offset=0, limit=3 → has_more=True (quedan 3)
+        # Ejemplo: total=6, offset=3, limit=3 → has_more=False (no quedan más)
+        has_more = (offset + limit) < total
+
+        # Paso 5: convertir a objetos ZoneItem
+        zone_items = [
+            ZoneItem(zone_code=z["zone_code"], zone_name=z["zone_name"])
+            for z in paginated
+        ]
 
         return {
             "total": total,
+            "has_more": has_more,
             "zones": zone_items,
         }
 
-    def _fetch_zones(self, dataset_id: Optional[str]) -> list:
+    def _fetch_valid_zones(self, dataset_id: Optional[str]) -> list:
         """
-        Método privado (el _ al inicio indica que es interno).
-        Aquí iría la consulta a la BD.
-        Por ahora retorna datos de prueba.
+        Método privado.
+        Filtra zonas que pertenezcan a datasets con estado válido.
+        Si se pasa dataset_id, filtra también por ese dataset.
         """
-        # Cuando haya BD real, esto sería algo como:
-        # return db.query(Zone).filter(Zone.dataset_id == dataset_id).all()
-        return _MOCK_ZONES
+        # Filtrar por estado válido (criterio de aceptación: no mostrar datos no procesados)
+        zones = [
+            z for z in _MOCK_ZONES
+            if z["dataset_status"] in VALID_STATUSES
+        ]
+
+        # Si se pidió un dataset específico, filtrar también por ese
+        if dataset_id:
+            zones = [z for z in zones if z["dataset_id"] == dataset_id]
+
+        return zones
 
 
-# Instancia única del servicio (patrón Singleton simple)
+# Instancia única del servicio
 zone_service = ZoneService()

@@ -3,7 +3,7 @@ from typing import Optional
 from app.schemas.schema import ZoneListResponse
 from app.services.zone_service import zone_service
 
-router = APIRouter(prefix="/api/v1", tags=["HU-04 - Zonas"])
+router = APIRouter(prefix="/api/v1", tags=["Zonas"])
 
 
 @router.get(

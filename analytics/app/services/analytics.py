@@ -8,7 +8,6 @@ from app.core.config import settings
 class AnalyticsService(IAnalyticsService):
     
     def get_zones(self, dataset_hash: str) -> List[Dict[str, str]]:
-        # Primero busca la procesada, si no existe, la normal
         processed_file = os.path.join(settings.STORAGE_PATH, f"processed_{dataset_hash}.csv")
         base_file = os.path.join(settings.STORAGE_PATH, f"{dataset_hash}.csv")
         
@@ -18,8 +17,6 @@ class AnalyticsService(IAnalyticsService):
              raise DomainException(f"Dataset {dataset_hash} not found in storage.", status_code=404)
 
         try:
-            # Optimizamos lectura cargando solo las columnas de interes (usa lowercase por la transformacion HU-07)
-            # Primero leemos 1 row solo para agarrar las caps exactas si no está procesado
             head = pd.read_csv(target_file, nrows=0)
             col_map = {c.lower().strip(): c for c in head.columns}
             
@@ -29,10 +26,8 @@ class AnalyticsService(IAnalyticsService):
             df = pd.read_csv(target_file, usecols=[dep_col, mun_col])
             
             df = df.drop_duplicates()
-            # Mapear a salida estandar
             df = df.rename(columns={dep_col: "departamento", mun_col: "municipio"})
-            
-            # Sort alpha
+
             df = df.sort_values(by=["departamento", "municipio"])
             
             return df.to_dict('records')

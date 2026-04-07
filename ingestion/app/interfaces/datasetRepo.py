@@ -18,7 +18,7 @@ class IDatasetRepository(ABC):
         pass
 
     @abstractmethod
-    def getZones(self, datasetId: Optional[str], search: Optional[str], limit: int, offset: int) -> Tuple[List[DatasetZone], int]:
+    def getZones(self, datasetId: Optional[str], search: Optional[str], limit: int, offset: int, department: Optional[str] = None) -> Tuple[List[DatasetZone], int]:
         pass
 
     @abstractmethod

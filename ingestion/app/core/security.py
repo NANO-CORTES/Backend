@@ -30,7 +30,6 @@ def require_role(allowed_roles: list[str]):
         user_role = user.get("role")
         if not user_role or user_role not in allowed_roles:
             raise HTTPException(status_code=403, detail="Insufficient restricted permissions")
-        # Populate context
         request.state.user = user
         return user
     return role_checker

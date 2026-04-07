@@ -5,13 +5,10 @@ from app.core.exceptions import global_exception_handler
 
 app = FastAPI(title="Analytics Service")
 
-# Setup E2E Global Error Handler
 app.add_exception_handler(Exception, global_exception_handler)
 
-# Setup Trace ID Middleware
 app.add_middleware(TraceIdMiddleware)
 
-# Setup Routers
 app.include_router(zones.router, prefix="/api/v1/analytics", tags=["analytics"])
 
 @app.get("/health")

@@ -5,24 +5,22 @@ from app.core.middleware import TraceIdMiddleware
 from app.core.exceptions import global_exception_handler
 from sqlalchemy import text
 
-# Create DB Schema
 with engine.connect() as con:
     con.execute(text("CREATE SCHEMA IF NOT EXISTS ingestion"))
+    # Add department column if it doesn't exist
+    try:
+        con.execute(text("ALTER TABLE ingestion.dataset_zones ADD COLUMN IF NOT EXISTS department VARCHAR"))
+    except Exception:
+        # Table might not exist yet, create_all will handle it
+        pass
     con.commit()
 
-# Create Tables
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Ingestion Service")
-
-# Setup E2E Global Error Handler
 app.add_exception_handler(Exception, global_exception_handler)
-
-# Setup Trace ID Middleware
 app.add_middleware(TraceIdMiddleware)
-
-# Setup Routers
-app.include_router(dataset.router, prefix="/api/v1/datasets", tags=["datasets"])
+app.include_router(dataset.router, prefix="/datasets", tags=["datasets"])
 
 @app.get("/health")
 def health_check():

@@ -1,38 +1,55 @@
-from fastapi import APIRouter, Depends, File, Request, UploadFile, Query, HTTPException
+from fastapi import APIRouter, Depends, File, Request, UploadFile, Query, HTTPException, BackgroundTasks
 from typing import List, Optional
+from sqlalchemy.orm import Session
+import logging
 
-from app.api.deps import getIngestionService
-from app.core.security import get_current_user
+from app.api import deps
+from app.core.audit_client import log_audit_action
 from app.interfaces.ingestionService import IIngestionService
 from app.interfaces.datasetRepo import IDatasetRepository
 from app.schemas.dataset import DatasetResponse, ZoneListResponse
-from app.api.deps import getDatasetRepository
+from app.api.deps import getDatasetRepository, getIngestionService
 
 router = APIRouter()
-
+logger = logging.getLogger("IngestionEndpoint")
 
 @router.post("/upload", response_model=DatasetResponse)
 async def uploadDataset(
     request: Request,
     file: UploadFile = File(...),
-    currentUser: dict = Depends(get_current_user),
     ingestionService: IIngestionService = Depends(getIngestionService)
 ):
-    dataset = await ingestionService.processUpload(
-        userId=currentUser["username"],
-        file=file
-    )
-
-    logger = getattr(request.state, "logger", None)
-    if logger:
-        logger.info(
-            f"Dataset '{dataset.fileName}' (id={dataset.datasetId}, "
-            f"size={dataset.fileSize}B) cargado por '{currentUser['username']}' "
-            f"— hash: {dataset.fileHash}"
+    trace_id = getattr(request.state, "trace_id", "Unknown")
+    user_id = None
+    if hasattr(request.state, "user"):
+         user_id = str(request.state.user.get("sub"))
+    
+    try:
+        dataset = await ingestionService.processUpload(
+            userId=user_id or "anonymous",
+            file=file
         )
-
-    return dataset
-
+        
+        # Log success to audit
+        await log_audit_action(
+            action="UPLOAD_DATASET",
+            details=f"Dataset '{dataset.fileName}' (id={dataset.datasetId}) cargado exitosamente.",
+            user_id=user_id,
+            trace_id=trace_id
+        )
+        
+        return dataset
+    except Exception as e:
+        # Log failure to audit
+        await log_audit_action(
+            action="UPLOAD_DATASET_FAILED",
+            details=f"Fallo al cargar {file.filename}: {str(e)}",
+            user_id=user_id,
+            trace_id=trace_id
+        )
+        if isinstance(e, HTTPException):
+            raise e
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/", response_model=List[DatasetResponse])
 def getDatasets(
@@ -40,16 +57,16 @@ def getDatasets(
 ):
     return datasetRepo.getAll()
 
-
 @router.get("/zones", response_model=ZoneListResponse)
 def getZones(
     datasetId: Optional[str] = Query(None, description="Filtrar por datasetId"),
     search: Optional[str] = Query(None, description="Buscar por nombre o código"),
+    department: Optional[str] = Query(None, description="Filtrar por departamento"),
     limit: int = Query(50, ge=1, le=100),
     offset: int = Query(0, ge=0),
     datasetRepo: IDatasetRepository = Depends(getDatasetRepository)
 ):
-    zones, total = datasetRepo.getZones(datasetId=datasetId, search=search, limit=limit, offset=offset)
+    zones, total = datasetRepo.getZones(datasetId=datasetId, search=search, limit=limit, offset=offset, department=department)
     
     return {
         "total": total,
@@ -59,7 +76,6 @@ def getZones(
             {"zoneCode": z.zoneCode, "zoneName": z.zoneName} for z in zones
         ]
     }
-
 
 @router.get("/{id}", response_model=DatasetResponse)
 def getDatasetById(

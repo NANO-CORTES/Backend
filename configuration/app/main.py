@@ -7,27 +7,17 @@ from app.core.middleware import TraceIdMiddleware
 from app.core.exceptions import global_exception_handler
 from sqlalchemy import text
 
-# Create DB Schema
 with engine.connect() as con:
     con.execute(text("CREATE SCHEMA IF NOT EXISTS configuration"))
     con.commit()
 
-# Create Tables
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Configuration Service")
-
-# Setup Rate Limiting handler
 app.state.limiter = auth.limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
-
-# Setup E2E Global Error Handler
 app.add_exception_handler(Exception, global_exception_handler)
-
-# Setup Trace ID Middleware
 app.add_middleware(TraceIdMiddleware)
-
-# Setup Routers
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
 
 @app.get("/health")

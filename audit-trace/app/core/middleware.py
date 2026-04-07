@@ -5,7 +5,6 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 logger = logging.getLogger("ConfigurationService")
 logger.setLevel(logging.INFO)
-# Basic format that includes the trace_id which we'll set using a context variable or request state
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - [Trace: %(trace_id)s] - %(message)s')
 ch = logging.StreamHandler()
 ch.setFormatter(formatter)
@@ -15,8 +14,7 @@ class TraceIdMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         trace_id = request.headers.get("X-Trace-Id") or str(uuid.uuid4())
         request.state.trace_id = trace_id
-        
-        # We inject trace_id into Logger adapter for context
+
         adapter = logging.LoggerAdapter(logger, {'trace_id': trace_id})
         request.state.logger = adapter
         

@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     JWT_SECRET: str = "supersecretkey12345"
     JWT_ALGORITHM: str = "HS256"
     STORAGE_PATH: str = "/app/storage"
+    MS_AUDIT_TRACE_URL: str = "http://ms-audit-trace:8002"
 
     @property
     def DATABASE_URL(self) -> str:

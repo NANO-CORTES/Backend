@@ -33,5 +33,6 @@ class DatasetZone(Base):
     datasetId   = Column("dataset_id", String, ForeignKey("ingestion.dataset_loads.dataset_id"), index=True)
     zoneCode    = Column("zone_code", String, index=True)
     zoneName    = Column("zone_name", String)
+    department  = Column(String, index=True, nullable=True)
 
     datasetLoad = relationship("DatasetLoad", back_populates="zones")

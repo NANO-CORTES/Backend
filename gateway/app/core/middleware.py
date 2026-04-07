@@ -12,7 +12,6 @@ logger.addHandler(ch)
 
 class GatewayTraceMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
-        # HU-06: Generación de trace_id en el punto de entrada
         trace_id = request.headers.get("X-Trace-Id") or str(uuid.uuid4())
         request.state.trace_id = trace_id
         

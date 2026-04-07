@@ -1,4 +1,5 @@
 import logging
+from typing import List
 from tenacity import retry, wait_exponential, stop_after_attempt, retry_if_exception_type
 from sqlalchemy.exc import OperationalError, SQLAlchemyError
 from app.interfaces.audit_repo import IAuditRepository
@@ -43,3 +44,9 @@ class AuditService(IAuditService):
         except Exception as e:
             logger.error(f"Failed to save audit log after multiple retries. Details: {log_in.model_dump_json()} Exception: {str(e)}")
             raise DomainException(f"Could not persist audit log: {str(e)}", status_code=500)
+
+    def get_logs(self, limit: int = 100, skip: int = 0) -> List[AuditLog]:
+        return self.audit_repo.get_all(limit=limit, skip=skip)
+
+    def get_user_logs(self, user_id: str, limit: int = 100, skip: int = 0) -> List[AuditLog]:
+        return self.audit_repo.get_by_user(user_id=user_id, limit=limit, skip=skip)

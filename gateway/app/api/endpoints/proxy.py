@@ -8,17 +8,14 @@ router = APIRouter()
 client = httpx.AsyncClient()
 
 async def forward_request(request: Request, destination_url: str):
-    # Genera el Trace_id para enviarlo a los microservicios
     trace_id = getattr(request.state, "trace_id", "")
     
     headers = dict(request.headers)
     headers["x-trace-id"] = trace_id
-    # Evitar problemas asincronos con host de fastapi VS el downstream
     if "host" in headers:
         del headers["host"]
         
     try:
-        # Pasa el body como streaming
         proxy_req = client.build_request(
             method=request.method,
             url=destination_url,
@@ -33,14 +30,21 @@ async def forward_request(request: Request, destination_url: str):
         )
     except httpx.RequestError as exc:
         logger = getattr(request.state, "logger", None)
+        error_msg = f"Downstream connection error to {destination_url} ({request.method} {request.url.path}): {exc}"
         if logger:
-            logger.error(f"Downstream connection error: {exc}")
-        raise HTTPException(status_code=502, detail="Bad Gateway: downstream service unreachable.")
+            logger.error(error_msg)
+        else:
+            # Fallback if logger is not in state
+            import logging
+            logging.getLogger("GatewayProxy").error(error_msg)
+        raise HTTPException(
+            status_code=502, 
+            detail=f"Bad Gateway: unreachable {destination_url}. Check if the microservice is running."
+        )
 
 @router.api_route("/configuration/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
 async def proxy_configuration(request: Request, path: str):
     url = f"{settings.MS_CONFIGURATION_URL}/{path}"
-    # Merge query params
     if request.query_params:
         url += f"?{request.query_params}"
     return await forward_request(request, url)
@@ -69,6 +73,20 @@ async def proxy_transformation(request: Request, path: str):
 @router.api_route("/analytics/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
 async def proxy_analytics(request: Request, path: str):
     url = f"{settings.MS_ANALYTICS_URL}/{path}"
+    if request.query_params:
+        url += f"?{request.query_params}"
+    return await forward_request(request, url)
+
+@router.api_route("/auth/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
+async def proxy_auth(request: Request, path: str):
+    url = f"{settings.MS_AUTH_URL}/{path}"
+    if request.query_params:
+        url += f"?{request.query_params}"
+    return await forward_request(request, url)
+
+@router.api_route("/admin/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
+async def proxy_admin(request: Request, path: str):
+    url = f"{settings.MS_AUTH_URL}/admin/{path}"
     if request.query_params:
         url += f"?{request.query_params}"
     return await forward_request(request, url)

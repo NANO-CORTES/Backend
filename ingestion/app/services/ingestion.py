@@ -42,6 +42,7 @@ class IngestionService(IIngestionService):
             DatasetZone(
                 zoneCode=z["zoneCode"],
                 zoneName=z["zoneName"],
+                department=z.get("department"),
                 datasetLoad=newDataset
             )
             for z in valData["zones"]

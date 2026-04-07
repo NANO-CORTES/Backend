@@ -2,6 +2,11 @@ from fastapi import FastAPI
 from app.api.endpoints import transform
 from app.core.middleware import TraceIdMiddleware
 from app.core.exceptions import global_exception_handler
+from app.core.database import engine, Base
+from app.models import transformation # Ensure models are registered
+
+# Create tables
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Transformation Service")
 
@@ -9,12 +14,14 @@ app.add_exception_handler(Exception, global_exception_handler)
 
 app.add_middleware(TraceIdMiddleware)
 
-app.include_router(transform.router, prefix="/api/v1/transformation", tags=["transformation"])
+app.include_router(transform.router, prefix="/transformation", tags=["transformation"])
 
 @app.get("/health")
 def health_check():
     import time
     try:
+        from app.core.database import engine
+        from sqlalchemy import text
         with engine.connect() as con:
             con.execute(text("SELECT 1"))
         db_connected = True

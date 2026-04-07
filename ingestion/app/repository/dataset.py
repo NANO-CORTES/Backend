@@ -34,10 +34,16 @@ class DatasetRepository(IDatasetRepository):
             .all()
         )
 
-    def getZones(self, datasetId: Optional[str], search: Optional[str], limit: int, offset: int) -> Tuple[List[DatasetZone], int]:
+    def getZones(self, datasetId: Optional[str], search: Optional[str], limit: int, offset: int, department: Optional[str] = None) -> Tuple[List[DatasetZone], int]:
         query = self.db.query(DatasetZone)
         if datasetId:
             query = query.filter(DatasetZone.datasetId == datasetId)
+        if department:
+            query = query.filter(DatasetZone.department == department)
+        else:
+            # Heuristic: In Colombia, Municipalities have 5-digit codes. 
+            # Departments have 2-digit codes. Filter for 5+ digits.
+            query = query.filter(func.length(DatasetZone.zoneCode) >= 5)
         if search:
             query = query.filter(
                 or_(

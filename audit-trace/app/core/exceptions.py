@@ -23,7 +23,6 @@ async def global_exception_handler(request: Request, exc: Exception):
             }
         )
 
-    # Log unhandled exceptions
     if logger:
         logger.error(f"Unhandled Exception: {str(exc)}\n{traceback.format_exc()}")
         

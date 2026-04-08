@@ -14,6 +14,7 @@ app.add_middleware(
 )
 
 MS_AUTH_URL = "http://ms-auth:8006"
+MS_INGESTION_URL = "http://ms-ingestion:8001"
 
 
 async def _proxy(request: Request, target_url: str) -> Response:
@@ -68,6 +69,12 @@ async def proxy_reset_password(user_id: str, request: Request):
     return await _proxy(
         request, f"{MS_AUTH_URL}/api/v1/admin/users/{user_id}/reset-password"
     )
+
+
+# ---------- Ingestion routes ----------
+@app.post("/api/v1/ingestion/upload")
+async def proxy_upload(request: Request):
+    return await _proxy(request, f"{MS_INGESTION_URL}/upload")
 
 
 @app.get("/")

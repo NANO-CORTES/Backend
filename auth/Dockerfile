@@ -1,19 +1,17 @@
-# Imagen base de Python
 FROM python:3.11-slim
 
-# Carpeta de trabajo dentro del contenedor
 WORKDIR /app
 
-# Copiar e instalar dependencias primero
-# (esto aprovecha el caché de Docker)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copiar el resto del código
 COPY . .
 
-# Puerto que expone este microservicio
-EXPOSE 8002
+EXPOSE 8006
 
-# Comando para arrancar el servidor
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8002"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8006"]

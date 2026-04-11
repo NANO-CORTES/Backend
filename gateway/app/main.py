@@ -6,6 +6,7 @@ from app.core.auth_middleware import auth_middleware
 import uuid
 import logging
 
+# Configuración de logging para trazabilidad de peticiones
 logger = logging.getLogger("GatewayService")
 logger.setLevel(logging.INFO)
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - [Trace: %(trace_id)s] - %(message)s')
@@ -17,6 +18,7 @@ app = FastAPI(title="BFF API Gateway")
 
 @app.middleware("http")
 async def add_process_time_header(request: Request, call_next):
+    """Manejador de trazas y headers de proceso."""
     trace_id = request.headers.get("X-Trace-Id") or str(uuid.uuid4())
     request.state.trace_id = trace_id
     
@@ -40,7 +42,7 @@ async def add_process_time_header(request: Request, call_next):
         adapter.error(f"Gateway Internal Error: {e}")
         return JSONResponse(status_code=500, content={"error": "Gateway Error", "trace_id": trace_id})
 
-# Auth Middleware (must be after CORS but effectively wraps other controllers)
+# Middleware de Autenticación Geenral para todas las rutas del Gateway
 @app.middleware("http")
 async def wrap_auth_middleware(request: Request, call_next):
     try:
@@ -51,9 +53,7 @@ async def wrap_auth_middleware(request: Request, call_next):
         logger.error(f"Auth middleware error: {exc}")
         return JSONResponse(status_code=500, content={"detail": "Gateway authentication error"})
 
-# Add CORS last so it is the OUTERMOST middleware (called first for requests).
-# In FastAPI/Starlette, middlewares are executed in reverse order of addition.
-# Current Stack: CORSMiddleware -> wrap_auth_middleware -> add_process_time_header -> Router
+# Configuración de CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -63,16 +63,19 @@ app.add_middleware(
         "http://127.0.0.1:5174",
         "http://[::1]:5173",
         "http://[::1]:5174",
+        "*" # Permitimos todo temporalmente para facilitar desarrollo entre branches
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# Registro del Router de Proxy Genérico
 app.include_router(proxy.router, prefix="/api/v1", tags=["proxy"])
 
 @app.get("/health")
 def health_check():
+    """Endpoint de salud del Gateway."""
     import time
     return {
         "status": "healthy",
@@ -81,3 +84,7 @@ def health_check():
         "db_connected": False,
         "timestamp": int(time.time())
     }
+
+@app.get("/")
+def root():
+    return {"message": "BFF Gateway is running"}

@@ -6,7 +6,7 @@ from app.core.exceptions import global_exception_handler
 from sqlalchemy import text
 import time
 
-# Create schema and tables with retry logic
+# Create schema and tables with retry logic to ensure DB is ready
 max_retries = 5
 retry_count = 0
 
@@ -39,12 +39,19 @@ except Exception as e:
     print(f"Error creating tables: {e}")
 
 app = FastAPI(title="Ingestion Service")
+
+# Manejo global de excepciones para respuestas consistentes en JSON
 app.add_exception_handler(Exception, global_exception_handler)
+
+# Middleware para inyectar X-Trace-Id en cada petición
 app.add_middleware(TraceIdMiddleware)
+
+# Registro de Rutas
 app.include_router(dataset.router, prefix="/datasets", tags=["datasets"])
 
 @app.get("/health")
 def health_check():
+    """Endpoint de salud del servicio de Ingestión."""
     import time
     try:
         with engine.connect() as con:
@@ -60,3 +67,7 @@ def health_check():
         "db_connected": db_connected,
         "timestamp": int(time.time())
     }
+
+@app.get("/")
+def root():
+    return {"message": "Ingestion service is running"}

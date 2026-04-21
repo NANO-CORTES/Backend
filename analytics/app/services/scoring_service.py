@@ -5,7 +5,7 @@ class ScoringService:
     async def get_weights(self, config_id: str): # Cambiado a método de instancia
         async with httpx.AsyncClient() as client:
             # Esta URL viene de tu configuración de infraestructura
-            response = await client.get(f"{settings.CONFIGURATION_SERVICE_URL}/{config_id}")
+            response = await client.get(f"{settings.configuration_service_url}/{config_id}")
             if response.status_code != 200:
                 raise Exception("No se pudo obtener la configuración de pesos")
             return response.json()

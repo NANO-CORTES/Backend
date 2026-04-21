@@ -1,6 +1,11 @@
 fastapi
 uvicorn
+<<<<<<< HEAD
 sqlalchemy
 psycopg2-binary
 pydantic
 pydantic-settings
+=======
+pydantic
+pydantic-settings
+>>>>>>> feature/mis-cambios

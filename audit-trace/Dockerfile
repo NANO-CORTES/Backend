@@ -1,4 +1,5 @@
 FROM python:3.11-slim
+<<<<<<< HEAD
 
 # 1. Instalamos librerías del sistema necesarias para PostgreSQL y validación de archivos
 RUN apt-get update && apt-get install -y \
@@ -22,3 +23,10 @@ EXPOSE 8002
 
 # 4. Aseguramos que corra en el puerto correcto
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8002"]
+=======
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY . .
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+>>>>>>> feature/mis-cambios

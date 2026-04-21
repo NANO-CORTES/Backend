@@ -2,7 +2,6 @@ fastapi
 uvicorn
 pydantic
 pydantic-settings
-=======
 fastapi==0.111.0
 uvicorn==0.30.1
 pydantic==2.7.1

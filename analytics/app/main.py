@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.endpoints import scoring  # HU-15
+from app.api.endpoints.scoring import router as scoring_router # HU-15
 from app.api.endpoints.ranking import router as ranking_router
 from app.api.endpoints.health import router as health_router
 from app.core.config import settings
@@ -14,6 +14,7 @@ app = FastAPI(
     version=settings.service_version,
 )
 
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000", "http://localhost:5173"],
@@ -24,11 +25,13 @@ app.add_middleware(
 
 app.include_router(ranking_router)
 app.include_router(health_router)
-app.include_router(scoring.router, prefix="/api/v1/scoring", tags=["Scoring"])  # HU-15
+app.include_router(scoring_router, prefix="/scoring", tags=["Scoring"]) # HU-15
+
 
 @app.on_event("startup")
 async def startup():
     init_db()
+
 
 @app.get("/")
 def root():

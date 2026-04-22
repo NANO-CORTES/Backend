@@ -112,7 +112,7 @@ def deleteUser(
     if userId == currentAdmin.id:
         raise HTTPException(status_code=400, detail="Un administrador no puede eliminarse a sí mismo")
     
-    # Soft delete
+    # Soft delete: solo desactiva, no borra
     user.is_active = False
     db.add(user)
     db.commit()

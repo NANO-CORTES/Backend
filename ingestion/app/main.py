@@ -1,9 +1,12 @@
 from fastapi import FastAPI
 from app.core.database import engine, Base
 from app.api.endpoints import dataset
+from app.api.endpoints.zones import router as zonesRouter
+from app.api.endpoints.health import router as healthRouter
 from app.core.middleware import TraceIdMiddleware
 from app.core.exceptions import global_exception_handler
 from sqlalchemy import text
+import time
 
 with engine.connect() as con:
     con.execute(text("CREATE SCHEMA IF NOT EXISTS ingestion"))
@@ -17,25 +20,37 @@ with engine.connect() as con:
 
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="Ingestion Service")
+app = FastAPI(
+    title="Ingestion Service",
+    description="Microservicio de ingesta de datos territoriales",
+    version="1.0.0",
+)
+
 app.add_exception_handler(Exception, global_exception_handler)
 app.add_middleware(TraceIdMiddleware)
-app.include_router(dataset.router, prefix="/datasets", tags=["datasets"])
 
-@app.get("/health")
-def health_check():
-    import time
+# Routes
+app.include_router(dataset.router, prefix="/datasets", tags=["datasets"])
+app.include_router(zonesRouter)
+app.include_router(healthRouter)
+
+@app.get("/")
+def root():
+    return {"message": "Ingestion Service is running", "version": "1.0.0"}
+
+@app.get("/health-check")
+def healthCheck():
     try:
         with engine.connect() as con:
             con.execute(text("SELECT 1"))
-        db_connected = True
+        dbConnected = True
     except Exception:
-        db_connected = False
+        dbConnected = False
         
     return {
-        "status": "healthy" if db_connected else "unhealthy",
+        "status": "healthy" if dbConnected else "unhealthy",
         "service_name": "ms-ingestion",
         "version": "1.0.0",
-        "db_connected": db_connected,
+        "db_connected": dbConnected,
         "timestamp": int(time.time())
     }

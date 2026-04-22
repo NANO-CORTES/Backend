@@ -2,7 +2,7 @@ from fastapi import FastAPI, Depends
 from app.core.database import engine, Base, get_db
 from sqlalchemy.orm import Session
 from sqlalchemy import text
-from app.api.endpoints import auth, users
+from app.api.endpoints import auth, users, health, ranking
 from app.models.user import User, UserRole
 from app.core.security import getPasswordHash
 import time
@@ -43,20 +43,22 @@ def createInitialData():
 
 app.include_router(auth.router, tags=["auth"])
 app.include_router(users.router, prefix="/admin/users", tags=["admin"])
+app.include_router(health.router)
+app.include_router(ranking.router)
 
-@app.get("/health")
-def health_check():
+@app.get("/health-check")
+def healthCheck():
     try:
         with engine.connect() as con:
             con.execute(text("SELECT 1"))
-        db_connected = True
+        dbConnected = True
     except Exception:
-        db_connected = False
+        dbConnected = False
         
     return {
-        "status": "healthy" if db_connected else "unhealthy",
+        "status": "healthy" if dbConnected else "unhealthy",
         "service_name": "ms-auth",
         "version": "1.0.0",
-        "db_connected": db_connected,
+        "db_connected": dbConnected,
         "timestamp": int(time.time())
     }

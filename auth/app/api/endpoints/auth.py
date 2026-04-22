@@ -1,17 +1,16 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
 from app.core import security
 from app.core.config import settings
 from app.core.database import get_db
 from app.models.user import User
-from app.schemas.user import Token
+from app.schemas.user import Token, UserCreate, UserResponse
 
 router = APIRouter()
-
-from sqlalchemy import or_
 
 @router.post("/login", response_model=Token)
 def login(db: Session = Depends(get_db), formData: OAuth2PasswordRequestForm = Depends()):
@@ -30,8 +29,7 @@ def login(db: Session = Depends(get_db), formData: OAuth2PasswordRequestForm = D
     accessToken = security.createAccessToken(user.email, role=user.role.value)
     refreshToken = security.createRefreshToken(user.email)
     
-    import datetime
-    user.last_login = datetime.datetime.utcnow()
+    user.last_login = datetime.utcnow()
     db.commit()
     
     return {
@@ -39,9 +37,6 @@ def login(db: Session = Depends(get_db), formData: OAuth2PasswordRequestForm = D
         "refresh_token": refreshToken,
         "token_type": "bearer",
     }
-
-from datetime import datetime
-from app.schemas.user import UserCreate, UserResponse
 
 @router.post("/register", response_model=UserResponse)
 def register(userIn: UserCreate, db: Session = Depends(get_db)):

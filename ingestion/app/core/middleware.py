@@ -5,6 +5,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 logger = logging.getLogger("ConfigurationService")
 logger.setLevel(logging.INFO)
+
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - [Trace: %(trace_id)s] - %(message)s')
 ch = logging.StreamHandler()
 ch.setFormatter(formatter)

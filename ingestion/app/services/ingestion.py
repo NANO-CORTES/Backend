@@ -1,4 +1,5 @@
 import uuid
+from typing import Optional
 
 from fastapi import UploadFile
 
@@ -13,7 +14,13 @@ class IngestionService(IIngestionService):
     def __init__(self, datasetRepo: IDatasetRepository):
         self.datasetRepo = datasetRepo
 
-    async def processUpload(self, userId: str, file: UploadFile) -> DatasetLoad:
+    async def processUpload(
+        self, 
+        userId: str, 
+        file: UploadFile, 
+        sourceName: Optional[str] = None, 
+        sourceType: Optional[str] = None
+    ) -> DatasetLoad:
         fileHash, uniqueFileName, fileSizeBytes, valData = await validateAndProcessFile(file)
 
         existingDataset = self.datasetRepo.getByHash(fileHash)
@@ -35,6 +42,8 @@ class IngestionService(IIngestionService):
             recordCount        = valData["recordCount"],
             validRecordCount   = valData["validRecordCount"],
             invalidRecordCount = valData["invalidRecordCount"],
+            sourceName         = sourceName,
+            sourceType         = sourceType,
             status             = "VALID"
         )
         

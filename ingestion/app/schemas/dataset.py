@@ -25,6 +25,7 @@ class DatasetResponse(BaseModel):
 class ZoneResponse(BaseModel):
     zoneCode: str
     zoneName: str
+    department: Optional[str] = None
 
     class Config:
         from_attributes = True

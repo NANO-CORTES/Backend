@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, File, Request, UploadFile, Query, HTTPException, BackgroundTasks
+from fastapi import APIRouter, Depends, File, Request, UploadFile, Query, HTTPException, BackgroundTasks, Form
 from typing import List, Optional
 from sqlalchemy.orm import Session
 import logging
@@ -17,6 +17,8 @@ logger = logging.getLogger("IngestionEndpoint")
 async def uploadDataset(
     request: Request,
     file: UploadFile = File(...),
+    sourceName: Optional[str] = Form(None),
+    sourceType: Optional[str] = Form(None),
     ingestionService: IIngestionService = Depends(getIngestionService)
 ):
     trace_id = getattr(request.state, "trace_id", "Unknown")
@@ -27,7 +29,9 @@ async def uploadDataset(
     try:
         dataset = await ingestionService.processUpload(
             userId=user_id or "anonymous",
-            file=file
+            file=file,
+            sourceName=sourceName,
+            sourceType=sourceType
         )
         
         # Log success to audit
@@ -73,7 +77,11 @@ def getZones(
         "limit": limit,
         "offset": offset,
         "items": [
-            {"zoneCode": z.zoneCode, "zoneName": z.zoneName} for z in zones
+            {
+                "zoneCode": z.zoneCode, 
+                "zoneName": z.zoneName, 
+                "department": z.department
+            } for z in zones
         ]
     }
 

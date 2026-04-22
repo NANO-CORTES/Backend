@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 from app.api.endpoints import auth, users
 from app.models.user import User, UserRole
-from app.core.security import get_password_hash
+from app.core.security import getPasswordHash
 import time
 
 # Create schema if not exists
@@ -18,7 +18,7 @@ Base.metadata.create_all(bind=engine)
 app = FastAPI(title="Auth Service")
 
 @app.on_event("startup")
-def create_initial_data():
+def createInitialData():
     # Manually ensure username column exists for existing tables
     try:
         with engine.connect() as con:
@@ -28,17 +28,17 @@ def create_initial_data():
         pass # It might already exist or schema not yet ready
         
     db = next(get_db())
-    admin_exists = db.query(User).filter(User.email == "admin@territorial.com").first()
-    if not admin_exists:
-        admin_user = User(
+    adminExists = db.query(User).filter(User.email == "admin@territorial.com").first()
+    if not adminExists:
+        adminUser = User(
             email="admin@territorial.com",
             username="admin",
-            password_hash=get_password_hash("admin123"),
+            password_hash=getPasswordHash("admin123"),
             full_name="System Admin",
             role=UserRole.ADMIN,
             is_active=True
         )
-        db.add(admin_user)
+        db.add(adminUser)
         db.commit()
 
 app.include_router(auth.router, tags=["auth"])

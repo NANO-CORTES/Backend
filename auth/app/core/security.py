@@ -1,3 +1,4 @@
+import hashlib
 from datetime import datetime, timedelta
 from typing import Any, Union
 from jose import jwt
@@ -6,22 +7,25 @@ from app.core.config import settings
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
+def _pre_hash_password(password: str) -> str:
+    """Helper to bypass bcrypt 72-byte limit by pre-hashing with SHA256."""
+    return hashlib.sha256(password.encode("utf-8")).hexdigest()
 
-def get_password_hash(password: str) -> str:
-    return pwd_context.hash(password)
+def verifyPassword(plainPassword: str, hashedPassword: str) -> bool:
+    return pwd_context.verify(_pre_hash_password(plainPassword), hashedPassword)
 
-def create_access_token(subject: Union[str, Any], role: str = "USER", expires_delta: timedelta = None) -> str:
-    if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+def getPasswordHash(password: str) -> str:
+    return pwd_context.hash(_pre_hash_password(password))
+
+def createAccessToken(subject: Union[str, Any], role: str = "USER", expiresDelta: timedelta = None) -> str:
+    if expiresDelta:
+        expire = datetime.utcnow() + expiresDelta
     else:
         expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    to_encode = {"exp": expire, "sub": str(subject), "role": role}
-    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
-    return encoded_jwt
+    toEncode = {"exp": expire, "sub": str(subject), "role": role}
+    return jwt.encode(toEncode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
-def create_refresh_token(subject: Union[str, Any]) -> str:
+def createRefreshToken(subject: Union[str, Any]) -> str:
     expire = datetime.utcnow() + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
-    to_encode = {"exp": expire, "sub": str(subject), "type": "refresh"}
-    return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+    toEncode = {"exp": expire, "sub": str(subject), "type": "refresh"}
+    return jwt.encode(toEncode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)

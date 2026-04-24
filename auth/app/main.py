@@ -2,7 +2,7 @@ from fastapi import FastAPI, Depends
 from app.core.database import engine, Base, get_db
 from sqlalchemy.orm import Session
 from sqlalchemy import text
-from app.api.endpoints import auth, users, health, ranking
+from app.api.endpoints import auth, users, health
 from app.models.user import User, UserRole
 from app.core.security import getPasswordHash
 import time
@@ -44,7 +44,7 @@ def createInitialData():
 app.include_router(auth.router, tags=["auth"])
 app.include_router(users.router, prefix="/admin/users", tags=["admin"])
 app.include_router(health.router)
-app.include_router(ranking.router)
+
 
 @app.get("/health-check")
 def healthCheck():

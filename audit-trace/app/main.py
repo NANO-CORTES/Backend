@@ -17,7 +17,7 @@ app.add_exception_handler(Exception, global_exception_handler)
 
 app.add_middleware(TraceIdMiddleware)
 
-app.include_router(audit.router, prefix="/api/v1/audit", tags=["audit"])
+app.include_router(audit.router, prefix="", tags=["audit"])
 
 @app.get("/health")
 def health_check():

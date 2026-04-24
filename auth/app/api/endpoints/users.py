@@ -10,7 +10,7 @@ from app.schemas.user import UserCreate, UserResponse, UserUpdate
 
 router = APIRouter()
 
-def get_current_user(db: Session = Depends(get_db), authorization: str = Header(None)):
+def getCurrentUser(db: Session = Depends(get_db), authorization: str = Header(None)):
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="No autorizado")
     token = authorization.split(" ")[1]
@@ -27,89 +27,89 @@ def get_current_user(db: Session = Depends(get_db), authorization: str = Header(
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     return user
 
-def get_current_admin_user(current_user: User = Depends(get_current_user)):
-    if current_user.role != UserRole.ADMIN:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Acceso denegado: se requiere rol ADMIN"
-        )
-    return current_user
+def getCurrentAdminUser(currentUser: User = Depends(getCurrentUser)):
+    if currentUser.role != UserRole.ADMIN:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Acceso denegado: se requiere rol ADMIN")
+    return currentUser
 
 @router.get("/me", response_model=UserResponse)
-def read_user_me(current_user: User = Depends(get_current_user)):
-    return current_user
+def readUserMe(currentUser: User = Depends(getCurrentUser)):
+    return currentUser
 
 @router.get("/", response_model=List[UserResponse])
-def read_users(
+def readUsers(
     db: Session = Depends(get_db),
     skip: int = 0,
     limit: int = 100,
-    current_admin: User = Depends(get_current_admin_user)
+    currentAdmin: User = Depends(getCurrentAdminUser)
 ):
     users = db.query(User).offset(skip).limit(limit).all()
     return users
 
 @router.post("/", response_model=UserResponse)
-def create_user(
+def createUser(
     *,
     db: Session = Depends(get_db),
-    user_in: UserCreate,
-    current_admin: User = Depends(get_current_admin_user)
+    userIn: UserCreate,
+    currentAdmin: User = Depends(getCurrentAdminUser)
 ):
-    user = db.query(User).filter(User.email == user_in.email).first()
+    user = db.query(User).filter(User.email == userIn.email).first()
     if user:
-        raise HTTPException(status_code=400, detail="Ya existe un usuario con este email")
+        raise HTTPException(
+            status_code=400,
+            detail="Ya existe un usuario con este email",
+        )
     
-    user_data = user_in.dict()
-    password = user_data.pop("password")
-    user_data["password_hash"] = security.get_password_hash(password)
+    userData = userIn.dict()
+    password = userData.pop("password")
+    userData["password_hash"] = security.getPasswordHash(password)
     
-    user = User(**user_data)
+    user = User(**userData)
     db.add(user)
     db.commit()
     db.refresh(user)
     return user
 
-@router.patch("/{user_id}", response_model=UserResponse)
-def update_user(
+@router.patch("/{userId}", response_model=UserResponse)
+def updateUser(
     *,
     db: Session = Depends(get_db),
-    user_id: int,
-    user_in: UserUpdate,
-    current_admin: User = Depends(get_current_admin_user)
+    userId: int,
+    userIn: UserUpdate,
+    currentAdmin: User = Depends(getCurrentAdminUser)
 ):
-    user = db.query(User).filter(User.id == user_id).first()
+    user = db.query(User).filter(User.id == userId).first()
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
-    if user_id == current_admin.id and user_in.is_active is False:
+    if userId == currentAdmin.id and userIn.is_active is False:
         raise HTTPException(status_code=400, detail="Un administrador no puede desactivar su propia cuenta")
 
-    update_data = user_in.dict(exclude_unset=True)
-    if "password" in update_data:
-        password = update_data.pop("password")
-        user.password_hash = security.get_password_hash(password)
+    updateData = userIn.dict(exclude_unset=True)
+    if "password" in updateData:
+        password = updateData.pop("password")
+        user.password_hash = security.getPasswordHash(password)
     
-    for field in update_data:
-        setattr(user, field, update_data[field])
+    for field in updateData:
+        setattr(user, field, updateData[field])
     
     db.add(user)
     db.commit()
     db.refresh(user)
     return user
 
-@router.delete("/{user_id}", response_model=UserResponse)
-def delete_user(
+@router.delete("/{userId}", response_model=UserResponse)
+def deleteUser(
     *,
     db: Session = Depends(get_db),
-    user_id: int,
-    current_admin: User = Depends(get_current_admin_user)
+    userId: int,
+    currentAdmin: User = Depends(getCurrentAdminUser)
 ):
-    user = db.query(User).filter(User.id == user_id).first()
+    user = db.query(User).filter(User.id == userId).first()
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
-    if user_id == current_admin.id:
+    if userId == currentAdmin.id:
         raise HTTPException(status_code=400, detail="Un administrador no puede eliminarse a sí mismo")
     
     # Soft delete: solo desactiva, no borra

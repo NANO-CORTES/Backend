@@ -1,12 +1,37 @@
 from typing import Optional
 from app.interfaces.ranking_repository import IRankingRepository
 from app.schemas.schema import RankingResponse, ZoneRankingItem, ScoreLevel
+# Al final de ejecutar el scoring
+# Al final de ejecutar el scoring
+from app.services.audit_client import send_trace_event
+import asyncio
+
+# Enviar evento a audit-trace (sin await, ejecutarlo en segundo plano)
+asyncio.create_task(send_trace_event({
+    "dataset_load_id": execution_id,
+    "score_execution_id": execution_id,
+    "event_type": "SCORING_EXECUTED",
+    "parameters": {
+        "execution_id": execution_id,
+        "config_id": config_id,
+        "formula_version": "1.0"
+    },
+    "result_summary": {
+        "total_zones": total_zones,
+        "avg_score": avg_score
+    },
+    "user_id": user_id
+}))
 
 PAGE_SIZE = 20
 
 
 class RankingService:
+<<<<<<< HEAD:analytics/app/services/ranking_service.py
     # - SRP: solo maneja lógica de ranking, no acceso a BD ni HTTP.
+=======
+       # - SRP: solo maneja lógica de ranking, no acceso a BD ni HTTP.
+>>>>>>> d5ee6f5b649abf9d23fc51d99e99e90e27901ae1:auth/app/services/ranking_service.py
     # - DIP: depende de IRankingRepository (abstracción), no de la implementación.
     # - OCP: para cambiar la fuente de datos, se inyecta otro repositorio.
 
@@ -97,3 +122,5 @@ class RankingService:
             score_level=ScoreLevel(zone["score_level"]),
             execution_id=zone["execution_id"],
         )
+    
+    

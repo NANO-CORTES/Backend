@@ -27,13 +27,6 @@ PAGE_SIZE = 20
 
 
 class RankingService:
-<<<<<<< HEAD:analytics/app/services/ranking_service.py
-    # - SRP: solo maneja lógica de ranking, no acceso a BD ni HTTP.
-=======
-       # - SRP: solo maneja lógica de ranking, no acceso a BD ni HTTP.
->>>>>>> d5ee6f5b649abf9d23fc51d99e99e90e27901ae1:auth/app/services/ranking_service.py
-    # - DIP: depende de IRankingRepository (abstracción), no de la implementación.
-    # - OCP: para cambiar la fuente de datos, se inyecta otro repositorio.
 
     def __init__(self, repository: IRankingRepository):
         # Inyección de dependencia — DIP

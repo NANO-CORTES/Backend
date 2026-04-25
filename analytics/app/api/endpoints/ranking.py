@@ -10,7 +10,7 @@ from app.services.audit_client import send_trace_event
 import asyncio
 
 
-router = APIRouter(prefix="/api/v1", tags=["Ranking"])
+router = APIRouter(tags=["Ranking"])
 
 
 def _get_ranking_service(db: Session = Depends(get_db)) -> RankingService:

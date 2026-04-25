@@ -1,6 +1,5 @@
 import httpx
 import os
-import asyncio
 
 AUDIT_TRACE_URL = os.getenv("AUDIT_TRACE_URL", "http://audit-trace:8000")
 

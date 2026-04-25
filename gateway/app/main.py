@@ -65,6 +65,58 @@ app.add_middleware(
 
 app.include_router(proxy.router, prefix="/api/v1", tags=["proxy"])
 
+@app.get("/api/bff/compare")
+async def compare_zones(
+    zones: str = Query(..., description="Códigos de zonas separados por coma. Ej: ZC1,ZC2,ZC3")
+):
+    from typing import List, Dict
+    import httpx
+    from fastapi import Query, HTTPException
+
+    zone_list: List[str] = [z.strip() for z in zones.split(",") if z.strip()]
+
+    if len(zone_list) < 2 or len(zone_list) > 5:
+        raise HTTPException(status_code=400, detail="Debe seleccionar entre 2 y 5 zonas")
+
+    comparison_data: Dict[str, dict] = {}
+    max_values: Dict[str, float] = {}
+
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        for zone_code in zone_list:
+            try:
+                response = await client.get(
+                    f"http://analytics:8000/api/v1/zone-summary/{zone_code}"
+                )
+                response.raise_for_status()
+                data = response.json()
+
+                comparison_data[zone_code] = {
+                    "zone_name": data.get("zone_name", zone_code),
+                    "population_indicator": data.get("population_indicator"),
+                    "income_indicator": data.get("income_indicator"),
+                    "education_indicator": data.get("education_indicator"),
+                    "competition_indicator": data.get("competition_indicator"),
+                    "score": data.get("score") or data.get("combined_score")
+                }
+            except Exception:
+                comparison_data[zone_code] = {"error": "No se pudieron obtener datos"}
+
+    indicators = ["population_indicator", "income_indicator", "education_indicator", 
+                  "competition_indicator", "score"]
+
+    for ind in indicators:
+        values = [comparison_data[z].get(ind) for z in zone_list 
+                  if isinstance(comparison_data[z].get(ind), (int, float))]
+        if values:
+            max_values[ind] = max(values)
+
+    return {
+        "zones": zone_list,
+        "comparison": comparison_data,
+        "max_values": max_values,
+        "indicators": indicators
+    }
+
 @app.get("/health")
 def health_check():
     import time

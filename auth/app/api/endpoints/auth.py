@@ -1,4 +1,4 @@
-from datetime import timedelta, datetime
+from datetime import datetime, timedelta
 from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
@@ -13,11 +13,11 @@ from app.schemas.user import Token, UserCreate, UserResponse
 router = APIRouter()
 
 @router.post("/login", response_model=Token)
-def login(db: Session = Depends(get_db), form_data: OAuth2PasswordRequestForm = Depends()):
+def login(db: Session = Depends(get_db), formData: OAuth2PasswordRequestForm = Depends()):
     user = db.query(User).filter(
-        or_(User.email == form_data.username, User.username == form_data.username)
+        or_(User.email == formData.username, User.username == formData.username)
     ).first()
-    if not user or not security.verify_password(form_data.password, user.password_hash):
+    if not user or not security.verifyPassword(formData.password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Credenciales inválidas",
@@ -26,41 +26,42 @@ def login(db: Session = Depends(get_db), form_data: OAuth2PasswordRequestForm = 
     if not user.is_active:
         raise HTTPException(status_code=400, detail="Usuario inactivo")
     
-    access_token = security.create_access_token(user.email, role=user.role.value)
-    refresh_token = security.create_refresh_token(user.email)
+    accessToken = security.createAccessToken(user.email, role=user.role.value)
+    refreshToken = security.createRefreshToken(user.email)
     
     user.last_login = datetime.utcnow()
     db.commit()
     
     return {
-        "access_token": access_token,
-        "refresh_token": refresh_token,
+        "access_token": accessToken,
+        "refresh_token": refreshToken,
         "token_type": "bearer",
     }
 
 @router.post("/register", response_model=UserResponse)
-def register(user_in: UserCreate, db: Session = Depends(get_db)):
-    user_exists = db.query(User).filter(
-        or_(User.email == user_in.email, User.username == user_in.username)
+def register(userIn: UserCreate, db: Session = Depends(get_db)):
+    userExists = db.query(User).filter(
+        or_(User.email == userIn.email, User.username == userIn.username)
     ).first()
-    if user_exists:
+    if userExists:
         raise HTTPException(status_code=400, detail="El correo o el nombre de usuario ya está en uso.")
     
-    new_user = User(
-        email=user_in.email,
-        username=user_in.username,
-        full_name=user_in.full_name or user_in.username,
-        password_hash=security.get_password_hash(user_in.password),
-        role=user_in.role,
+    newUser = User(
+        email=userIn.email,
+        username=userIn.username,
+        full_name=userIn.full_name or userIn.username,
+        password_hash=security.getPasswordHash(userIn.password),
+        role=userIn.role,
         is_active=True,
         created_at=datetime.utcnow()
     )
-    db.add(new_user)
+    db.add(newUser)
     db.commit()
-    db.refresh(new_user)
-    return new_user
+    db.refresh(newUser)
+    return newUser
 
 @router.post("/logout")
 def logout():
-    # Sprint 1: logout se maneja client-side eliminando el token
+    # In search of simplicity for Sprint 1, logout will be handled client-side
+    # by clearing tokens. Blacklist could be added here.
     return {"message": "Has cerrado sesión correctamente"}

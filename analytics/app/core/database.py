@@ -13,5 +13,9 @@ def get_db():
         db.close()
 
 def init_db():
+    from sqlalchemy import text
     from app.models.ranking import Base
-    Base.metadata.create_all(bind=engine)
+    with engine.connect() as con:
+        con.execute(text("CREATE SCHEMA IF NOT EXISTS analytics"))
+        con.commit()
+    Base.metadata.create_all(bind=engine)

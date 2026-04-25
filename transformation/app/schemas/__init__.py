@@ -1,1 +1,1 @@
-# init
+# Schemas package for transformation service

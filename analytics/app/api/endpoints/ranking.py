@@ -6,6 +6,9 @@ from app.core.database import get_db
 from app.schemas.schema import RankingResponse
 from app.repositories.ranking_repository import RankingRepository
 from app.services.ranking_service import RankingService
+from app.services.audit_client import send_trace_event
+import asyncio
+
 
 router = APIRouter(tags=["Ranking"])
 
@@ -44,6 +47,25 @@ def get_ranking(
     try:
         if level:
             level = level.upper()
+                    # Enviar evento a audit-trace
+        async def send_event():
+            await send_trace_event({
+                "dataset_load_id": execution_id,
+                "score_execution_id": execution_id,
+                "event_type": "SCORING_EXECUTED",
+                "parameters": {
+                    "execution_id": execution_id,
+                    "config_id": "config-001",
+                    "formula_version": "1.0"
+                },
+                "result_summary": {
+                    "total_zones": 0,
+                    "avg_score": 0
+                },
+                "user_id": "system"
+            })
+        
+        asyncio.create_task(send_event())
         return service.get_ranking(
             execution_id=execution_id,
             level=level,
